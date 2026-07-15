@@ -1,5 +1,0 @@
-momo-fraud-web/
-├── app.py
-├── requirements.txt
-└── templates/
-    └── index.html
