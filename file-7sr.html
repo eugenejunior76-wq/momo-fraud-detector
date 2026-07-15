@@ -1,0 +1,122 @@
+
+
+<header>
+  <span class="shield">🛡️</span>
+  <div>
+    <h1>MoMo Fraud SMS Detector</h1>
+    <p>NLP-powered detection of fake Ghanaian mobile money SMS messages</p>
+  </div>
+</header>
+
+<main>
+
+  
+  <div class="stats">
+    <div class="stat">
+      <div class="val">96.67%</div>
+      <div class="lbl">Accuracy</div>
+    </div>
+    <div class="stat">
+      <div class="val">97.56%</div>
+      <div class="lbl">Precision</div>
+    </div>
+    <div class="stat">
+      <div class="val">95.00%</div>
+      <div class="lbl">Recall</div>
+    </div>
+    <div class="stat">
+      <div class="val">96.27%</div>
+      <div class="lbl">F1-Score</div>
+    </div>
+    <div class="stat">
+      <div class="val" id="modelName">{{ best_model }}</div>
+      <div class="lbl">Best Classifier</div>
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <h2>Analyse an SMS Message</h2>
+    <textarea id="smsInput" placeholder="Paste or type an SMS message here…"></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnAnalyse">Analyse Message</button>
+      <button class="btn-outline">Clear</button>
+    </div>
+    <div class="spinner" id="spinner"></div>
+  </div>
+
+  
+  <div class="card" id="result">
+    <h2>Classification Result</h2>
+    <div class="verdict" id="verdictBox">
+      <span class="icon" id="verdictIcon"></span>
+      <h3 id="verdictText"></h3>
+      <p class="conf" id="verdictConf"></p>
+    </div>
+    <p style="font-size:12px;color:#999;margin-bottom:8px;">Original message analysed:</p>
+    <div class="original-msg" id="originalMsg"></div>
+  </div>
+
+  
+  <div class="card">
+    <h2>Try Example Messages</h2>
+    <div class="examples">
+
+      <div class="ex-item">
+        <span class="tag fraud">Fraud</span><br>
+        URGENT: Your MTN MoMo account will be suspended in 24hrs. Click bit.ly/mtn-verify to prevent deactivation.
+      </div>
+
+      <div class="ex-item">
+        <span class="tag ham">Legitimate</span><br>
+        You have received GHS 500.00 from 0244567890. Your new MoMo balance is GHS 1,250.00. TxnID: 873621904.
+      </div>
+
+      <div class="ex-item">
+        <span class="tag fraud">Fraud</span><br>
+        Congratulations! You have won GHS 5,000 from the Telecel monthly draw. Call 0549123456 to claim your prize now.
+      </div>
+
+      <div class="ex-item">
+        <span class="tag ham">Legitimate</span><br>
+        MTN MoMo: Transaction confirmed. GHS 200.00 paid to Shoprite Ghana. Balance: GHS 950.00. Thank you.
+      </div>
+
+      <div class="ex-item">
+        <span class="tag fraud">Fraud</span><br>
+        ALERT: GHS 2,000 debited without your authority. Call 0556789012 immediately to reverse this transaction.
+      </div>
+
+      <div class="ex-item">
+        <span class="tag ham">Legitimate</span><br>
+        Your MoMo account has been credited with GHS 1,000.00. Transaction ID: 992817362. Thank you for using MTN.
+      </div>
+
+    </div>
+  </div>
+
+  
+  <div class="card">
+    <h2>About This System</h2>
+    <p style="font-size:13px;color:var(--sub);line-height:1.7;">
+      This system uses <strong>Natural Language Processing (NLP)</strong> and machine learning to detect
+      fraudulent mobile money SMS messages targeting Ghanaian users. The pipeline implements:
+      <strong>TF-IDF vectorisation</strong> (max 5,000 features, unigrams + bigrams),
+      text preprocessing (lowercase, punctuation removal, stop-word removal, lemmatisation),
+      and a <strong>Logistic Regression</strong> classifier — achieving <strong>96.67% accuracy</strong>
+      on a balanced dataset of 1,200 Ghanaian MoMo SMS messages (600 fraud, 600 legitimate).
+      Built with Python, NLTK, Scikit-learn and Flask.
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  MoMo Fraud SMS Detector — ATU BTech Project — NLP &amp; Machine Learning
+</footer>
+
+<div id="toast"></div>
+
+
+
+
