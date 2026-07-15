@@ -3,157 +3,623 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MoMo Fraud SMS Detector</title>
+  <title>MoMo Shield — Fraud SMS Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --yellow: #FFCC00; --navy: #1A1A2E; --red: #C62828;
-      --red-bg: #FDECEA; --green: #2E7D32; --grn-bg: #E8F5E9;
-      --gray: #F4F6F8; --border: #E0E0E0; --white: #FFFFFF; --sub: #666666;
+      --accent:     #FFCC00;
+      --accent-dim: #e6b800;
+      --navy:       #0f0f23;
+      --navy2:      #16213e;
+      --navy3:      #1a1a3e;
+      --glass:      rgba(255,255,255,0.05);
+      --glass-b:    rgba(255,255,255,0.10);
+      --red:        #ff4d4d;
+      --red-bg:     rgba(255,77,77,0.12);
+      --green:      #00e676;
+      --green-bg:   rgba(0,230,118,0.10);
+      --text:       #e8eaf6;
+      --subtext:    #8892b0;
+      --border:     rgba(255,255,255,0.08);
+      --radius:     16px;
     }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray); min-height: 100vh; }
-    header { width: 100%; background: var(--navy); color: var(--white); padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
-    header h1 { font-size: 1.2rem; font-weight: 700; }
-    header p  { font-size: 0.75rem; opacity: 0.7; margin-top: 2px; }
-    main { width: 100%; max-width: 780px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
-    .card { background: var(--white); border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .card h2 { font-size: 1rem; color: var(--navy); margin-bottom: 14px; font-weight: 700; }
-    textarea { width: 100%; height: 130px; border: 2px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; transition: border-color 0.2s; }
-    textarea:focus { outline: none; border-color: var(--yellow); }
-    .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-    button { flex: 1; min-width: 130px; height: 46px; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: var(--yellow); color: var(--navy); }
-    .btn-outline  { background: var(--white); color: var(--navy); border: 2px solid var(--yellow); }
-    .spinner { display: none; width: 22px; height: 22px; border: 3px solid #ddd; border-top-color: var(--navy); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 14px auto 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -40%;
+      left: -20%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(255,204,0,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30%;
+      right: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      background: rgba(15,15,35,0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .nav-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .nav-title span { color: var(--accent); }
+    .nav-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,204,0,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(255,204,0,0.3);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Page wrapper ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 20px 0 8px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(255,204,0,0.1);
+      border: 1px solid rgba(255,204,0,0.25);
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #ffffff 0%, #a0aec0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, #ff9500 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1rem;
+      color: var(--subtext);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    @media(max-width: 580px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 14px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat:hover { transform: translateY(-2px); border-color: rgba(255,204,0,0.3); }
+    .stat .val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      display: block;
+    }
+    .stat .lbl {
+      font-size: 11px;
+      color: var(--subtext);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* ── Glass card ── */
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+    }
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--subtext);
+      margin-bottom: 18px;
+    }
+
+    /* ── Input area ── */
+    .input-wrapper {
+      position: relative;
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      resize: vertical;
+      transition: border-color 0.2s, background 0.2s;
+      line-height: 1.6;
+    }
+    textarea::placeholder { color: var(--subtext); }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,204,0,0.04);
+    }
+    .char-count {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-size: 11px;
+      color: var(--subtext);
+    }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+    .btn {
+      flex: 1;
+      min-width: 130px;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--navy);
+      box-shadow: 0 4px 20px rgba(255,204,0,0.3);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-dim);
+      box-shadow: 0 6px 28px rgba(255,204,0,0.45);
+    }
+    .btn-ghost {
+      background: var(--glass-b);
+      color: var(--subtext);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: none;
+      width: 20px; height: 20px;
+      border: 2px solid rgba(15,15,35,0.3);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #result { display: none; }
-    .verdict { border-radius: 10px; padding: 22px; text-align: center; margin-bottom: 16px; }
-    .verdict.fraud { background: var(--red-bg); border: 2px solid var(--red); }
-    .verdict.ham   { background: var(--grn-bg); border: 2px solid var(--green); }
-    .verdict h3 { font-size: 1.2rem; font-weight: 800; }
-    .verdict.fraud h3 { color: var(--red); }
-    .verdict.ham   h3 { color: var(--green); }
-    .verdict .conf { font-size: 0.88rem; color: var(--sub); margin-top: 6px; }
-    .original-msg { background: var(--gray); border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.6; word-break: break-word; }
-    .stats { display: flex; gap: 12px; flex-wrap: wrap; }
-    .stat { flex: 1; min-width: 120px; background: var(--white); border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
-    .stat .val { font-size: 1.4rem; font-weight: 800; color: var(--navy); }
-    .stat .lbl { font-size: 11px; color: var(--sub); margin-top: 2px; }
-    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media(max-width: 560px) { .examples { grid-template-columns: 1fr; } }
-    .ex-item { border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--sub); cursor: pointer; transition: border-color 0.2s; line-height: 1.5; }
-    .ex-item:hover { border-color: var(--yellow); background: #fffde7; }
-    .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; }
-    .tag.fraud { background: var(--red-bg);  color: var(--red); }
-    .tag.ham   { background: var(--grn-bg);  color: var(--green); }
-    footer { text-align: center; padding: 20px; font-size: 11px; color: #aaa; }
-    #toast { display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 1000; }
+
+    /* ── Result panel ── */
+    #result {
+      display: none;
+      animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .verdict-banner {
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .verdict-banner.fraud { background: var(--red-bg); border: 1px solid rgba(255,77,77,0.3); }
+    .verdict-banner.ham   { background: var(--green-bg); border: 1px solid rgba(0,230,118,0.3); }
+
+    .verdict-icon {
+      font-size: 40px;
+      flex-shrink: 0;
+    }
+    .verdict-text h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .verdict-banner.fraud .verdict-text h3 { color: var(--red); }
+    .verdict-banner.ham   .verdict-text h3 { color: var(--green); }
+    .verdict-text p { font-size: 13px; color: var(--subtext); }
+
+    /* ── Confidence bar ── */
+    .conf-section { margin-bottom: 20px; }
+    .conf-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .conf-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .conf-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(0.16,1,0.3,1);
+      width: 0%;
+    }
+    .conf-fill.fraud { background: linear-gradient(90deg, #ff4d4d, #ff8800); }
+    .conf-fill.ham   { background: linear-gradient(90deg, #00e676, #00bfa5); }
+
+    /* ── Original message display ── */
+    .msg-display {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--subtext);
+      line-height: 1.7;
+      word-break: break-word;
+    }
+    .msg-display-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--subtext);
+      margin-bottom: 8px;
+    }
+
+    /* ── Examples ── */
+    .examples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media(max-width: 560px) { .examples-grid { grid-template-columns: 1fr; } }
+
+    .ex-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      font-size: 12.5px;
+      color: var(--subtext);
+      line-height: 1.6;
+    }
+    .ex-item:hover {
+      border-color: rgba(255,204,0,0.4);
+      background: rgba(255,204,0,0.04);
+      transform: translateY(-1px);
+      color: var(--text);
+    }
+    .ex-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .ex-tag.fraud { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(255,77,77,0.3); }
+    .ex-tag.ham   { background: var(--green-bg);  color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+
+    /* ── About ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 6px;
+    }
+    @media(max-width: 560px) { .about-grid { grid-template-columns: 1fr; } }
+
+    .about-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .about-item .icon { font-size: 22px; margin-bottom: 8px; display: block; }
+    .about-item h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .about-item p  { font-size: 12px; color: var(--subtext); line-height: 1.5; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: var(--subtext);
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,30,60,0.95);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
   </style>
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>🛡️ MoMo Fraud SMS Detector</h1>
-    <p>NLP-powered detection of fake Ghanaian mobile money SMS messages</p>
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">🛡️</div>
+    <div>
+      <div class="nav-title">Momo<span>Shield</span></div>
+    </div>
   </div>
-</header>
+  <div class="nav-badge">NLP Powered</div>
+</nav>
 
-<main>
+<!-- ── Page ── -->
+<div class="page">
 
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">🇬🇭 Built for Ghana</div>
+    <h1>Detect <span>MoMo Fraud</span><br/>Before It Reaches You</h1>
+    <p>Paste any suspicious SMS and our NLP model will tell you instantly whether it is a scam or a genuine mobile money message.</p>
+  </div>
+
+  <!-- Stats -->
   <div class="stats">
-    <div class="stat"><div class="val">96.67%</div><div class="lbl">Accuracy</div></div>
-    <div class="stat"><div class="val">97.56%</div><div class="lbl">Precision</div></div>
-    <div class="stat"><div class="val">95.00%</div><div class="lbl">Recall</div></div>
-    <div class="stat"><div class="val">96.27%</div><div class="lbl">F1-Score</div></div>
-    <div class="stat"><div class="val" style="font-size:0.9rem">{{ best_model }}</div><div class="lbl">Best Classifier</div></div>
+    <div class="stat"><span class="val">96.67%</span><div class="lbl">Accuracy</div></div>
+    <div class="stat"><span class="val">97.56%</span><div class="lbl">Precision</div></div>
+    <div class="stat"><span class="val">95.00%</span><div class="lbl">Recall</div></div>
+    <div class="stat"><span class="val">96.27%</span><div class="lbl">F1-Score</div></div>
   </div>
 
+  <!-- Input -->
   <div class="card">
-    <h2>Analyse an SMS Message</h2>
-    <textarea id="smsInput" placeholder="Paste or type an SMS message here…"></textarea>
+    <div class="card-title">Analyse a Message</div>
+    <div class="input-wrapper">
+      <textarea id="smsInput" placeholder="Paste or type an SMS message here… e.g. 'URGENT: Your MoMo account will be suspended…'" maxlength="1000" oninput="updateCount()"></textarea>
+      <span class="char-count" id="charCount">0 / 1000</span>
+    </div>
     <div class="btn-row">
-      <button class="btn-primary" id="btnAnalyse" onclick="analyse()">Analyse Message</button>
-      <button class="btn-outline" onclick="clearAll()">Clear</button>
+      <button class="btn btn-primary" id="btnAnalyse" onclick="analyse()">
+        <span id="btnIcon">🔍</span>
+        <span id="btnText">Analyse Message</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
     </div>
-    <div class="spinner" id="spinner"></div>
   </div>
 
+  <!-- Result -->
   <div class="card" id="result">
-    <h2>Classification Result</h2>
-    <div class="verdict" id="verdictBox">
-      <h3 id="verdictText"></h3>
-      <p class="conf" id="verdictConf"></p>
+    <div class="card-title">Classification Result</div>
+
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-icon" id="verdictIcon"></div>
+      <div class="verdict-text">
+        <h3 id="verdictTitle"></h3>
+        <p id="verdictSub"></p>
+      </div>
     </div>
-    <p style="font-size:12px;color:#999;margin-bottom:8px;">Original message:</p>
-    <div class="original-msg" id="originalMsg"></div>
+
+    <div class="conf-section">
+      <div class="conf-label">
+        <span>Confidence Score</span>
+        <span id="confValue"></span>
+      </div>
+      <div class="conf-bar">
+        <div class="conf-fill" id="confFill"></div>
+      </div>
+    </div>
+
+    <div class="msg-display-label">Message Analysed</div>
+    <div class="msg-display" id="originalMsg"></div>
   </div>
 
+  <!-- Examples -->
   <div class="card">
-    <h2>Try Example Messages</h2>
-    <div class="examples">
+    <div class="card-title">Try Example Messages</div>
+    <div class="examples-grid">
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag fraud">Fraud</span><br>
+        <span class="ex-tag fraud">Fraud</span><br/>
         URGENT: Your MTN MoMo account will be suspended in 24hrs. Click bit.ly/mtn-verify to prevent deactivation.
       </div>
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag ham">Legitimate</span><br>
+        <span class="ex-tag ham">Legitimate</span><br/>
         You have received GHS 500.00 from 0244567890. Your new MoMo balance is GHS 1,250.00. TxnID: 873621904.
       </div>
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag fraud">Fraud</span><br>
+        <span class="ex-tag fraud">Fraud</span><br/>
         Congratulations! You have won GHS 5,000 from the Telecel monthly draw. Call 0549123456 to claim your prize now.
       </div>
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag ham">Legitimate</span><br>
+        <span class="ex-tag ham">Legitimate</span><br/>
         MTN MoMo: Transaction confirmed. GHS 200.00 paid to Shoprite Ghana. Balance: GHS 950.00. Thank you.
       </div>
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag fraud">Fraud</span><br>
+        <span class="ex-tag fraud">Fraud</span><br/>
         ALERT: GHS 2,000 debited without your authority. Call 0556789012 immediately to reverse this transaction.
       </div>
+
       <div class="ex-item" onclick="loadExample(this)">
-        <span class="tag ham">Legitimate</span><br>
+        <span class="ex-tag ham">Legitimate</span><br/>
         Your MoMo account has been credited with GHS 1,000.00. Transaction ID: 992817362. Thank you for using MTN.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="card">
+    <div class="card-title">How It Works</div>
+    <div class="about-grid">
+      <div class="about-item">
+        <span class="icon">🧹</span>
+        <h4>Text Preprocessing</h4>
+        <p>Lowercasing, punctuation removal, stop-word filtering and lemmatisation clean each message before analysis.</p>
+      </div>
+      <div class="about-item">
+        <span class="icon">📊</span>
+        <h4>TF-IDF Vectorisation</h4>
+        <p>5,000-feature TF-IDF with unigrams and bigrams converts text into numerical representations the model understands.</p>
+      </div>
+      <div class="about-item">
+        <span class="icon">🤖</span>
+        <h4>Logistic Regression</h4>
+        <p>The best-performing classifier among Naive Bayes, LR and SVM — achieving 96.67% accuracy on Ghanaian MoMo data.</p>
       </div>
     </div>
   </div>
 
-  <div class="card">
-    <h2>About This System</h2>
-    <p style="font-size:13px;color:var(--sub);line-height:1.7;">
-      This system uses <strong>Natural Language Processing (NLP)</strong> and machine learning to detect
-      fraudulent mobile money SMS messages targeting Ghanaian users. The pipeline implements
-      <strong>TF-IDF vectorisation</strong> (5,000 features, unigrams + bigrams), text preprocessing
-      (lowercase, punctuation removal, stop-word removal, lemmatisation), and a
-      <strong>Logistic Regression</strong> classifier achieving <strong>96.67% accuracy</strong>
-      on 1,200 Ghanaian MoMo SMS messages. Built with Python, NLTK, Scikit-learn and Flask.
-    </p>
-  </div>
+</div>
 
-</main>
+<footer>
+  MoMoShield &mdash; ATU BTech Project &mdash; NLP &amp; Machine Learning &mdash; Built for Ghana
+</footer>
 
-<footer>MoMo Fraud SMS Detector &mdash; ATU BTech Project &mdash; NLP &amp; Machine Learning</footer>
 <div id="toast"></div>
 
 <script>
+  function updateCount() {
+    const len = document.getElementById('smsInput').value.length;
+    document.getElementById('charCount').textContent = `${len} / 1000`;
+  }
+
   async function analyse() {
     const input   = document.getElementById('smsInput');
     const message = input.value.trim();
-    if (!message) { showToast('Please enter an SMS message'); return; }
+    if (!message) { showToast('Please enter an SMS message first'); return; }
+
     setLoading(true);
     document.getElementById('result').style.display = 'none';
+
     try {
       const res  = await fetch('/predict', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message })
       });
       const data = await res.json();
       if (!res.ok) { showToast(data.error || 'Server error'); return; }
       showResult(data);
-    } catch (err) {
+    } catch (e) {
       showToast('Cannot reach server. Please try again.');
     } finally {
       setLoading(false);
@@ -161,37 +627,63 @@
   }
 
   function showResult(data) {
-    const box   = document.getElementById('verdictBox');
-    const text  = document.getElementById('verdictText');
-    const conf  = document.getElementById('verdictConf');
-    const orig  = document.getElementById('originalMsg');
-    const panel = document.getElementById('result');
-    box.className        = 'verdict ' + (data.is_fraud ? 'fraud' : 'ham');
-    text.textContent     = data.is_fraud ? '⚠️ FRAUDULENT MESSAGE' : '✅ LEGITIMATE MESSAGE';
-    conf.textContent     = data.confidence ? `Confidence: ${data.confidence}%` : '';
-    orig.textContent     = data.message;
-    panel.style.display  = 'block';
-    panel.scrollIntoView({ behavior: 'smooth' });
+    const isFraud  = data.is_fraud;
+    const conf     = data.confidence || 0;
+    const banner   = document.getElementById('verdictBanner');
+    const icon     = document.getElementById('verdictIcon');
+    const title    = document.getElementById('verdictTitle');
+    const sub      = document.getElementById('verdictSub');
+    const confVal  = document.getElementById('confValue');
+    const confFill = document.getElementById('confFill');
+    const orig     = document.getElementById('originalMsg');
+    const panel    = document.getElementById('result');
+
+    banner.className      = 'verdict-banner ' + (isFraud ? 'fraud' : 'ham');
+    icon.textContent      = isFraud ? '⚠️' : '✅';
+    title.textContent     = isFraud ? 'Fraudulent Message Detected' : 'Legitimate Message';
+    sub.textContent       = isFraud
+      ? 'This message shows strong signs of a MoMo scam. Do not click any links or call the number.'
+      : 'This message appears to be a genuine mobile money notification.';
+    confVal.textContent   = conf ? `${conf}%` : '—';
+    orig.textContent      = data.message;
+
+    confFill.className    = 'conf-fill ' + (isFraud ? 'fraud' : 'ham');
+    panel.style.display   = 'block';
+
+    // Animate confidence bar after render
+    setTimeout(() => { confFill.style.width = conf + '%'; }, 100);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function loadExample(el) {
-    const tag = el.querySelector('.tag').textContent;
-    document.getElementById('smsInput').value = el.innerText.replace(tag, '').trim();
+    const tag = el.querySelector('.ex-tag').textContent;
+    const msg = el.innerText.replace(tag, '').trim();
+    document.getElementById('smsInput').value = msg;
+    updateCount();
+    document.getElementById('smsInput').focus();
   }
 
   function clearAll() {
     document.getElementById('smsInput').value = '';
     document.getElementById('result').style.display = 'none';
+    document.getElementById('confFill').style.width = '0%';
+    updateCount();
   }
 
   function setLoading(on) {
-    document.getElementById('spinner').style.display = on ? 'block' : 'none';
-    document.getElementById('btnAnalyse').disabled   = on;
+    const spinner = document.getElementById('spinner');
+    const btnIcon = document.getElementById('btnIcon');
+    const btnText = document.getElementById('btnText');
+    const btn     = document.getElementById('btnAnalyse');
+    spinner.style.display = on ? 'block' : 'none';
+    btnIcon.style.display = on ? 'none'  : 'inline';
+    btnText.textContent   = on ? 'Analysing…' : 'Analyse Message';
+    btn.disabled          = on;
   }
 
   function showToast(msg) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
+    t.textContent   = msg;
     t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3500);
   }
