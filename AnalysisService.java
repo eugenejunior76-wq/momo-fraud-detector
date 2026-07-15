@@ -11,7 +11,7 @@ import java.io.IOException;
 public class AnalysisService extends IntentService {
 
     // ← Replace with your Render URL
-    private static final String API_URL = "https://your-app.onrender.com/predict";
+    private static final String API_URL = "https://momo-fraud-detector.onrender.com";
 
     private final OkHttpClient client = new OkHttpClient();
     private final Gson gson = new Gson();
