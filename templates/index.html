@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MoMo Fraud SMS Detector</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --yellow: #FFCC00; --navy: #1A1A2E; --red: #C62828;
+      --red-bg: #FDECEA; --green: #2E7D32; --grn-bg: #E8F5E9;
+      --gray: #F4F6F8; --border: #E0E0E0; --white: #FFFFFF; --sub: #666666;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray); min-height: 100vh; }
+    header { width: 100%; background: var(--navy); color: var(--white); padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    header p  { font-size: 0.75rem; opacity: 0.7; margin-top: 2px; }
+    main { width: 100%; max-width: 780px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
+    .card { background: var(--white); border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .card h2 { font-size: 1rem; color: var(--navy); margin-bottom: 14px; font-weight: 700; }
+    textarea { width: 100%; height: 130px; border: 2px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; transition: border-color 0.2s; }
+    textarea:focus { outline: none; border-color: var(--yellow); }
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    button { flex: 1; min-width: 130px; height: 46px; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--yellow); color: var(--navy); }
+    .btn-outline  { background: var(--white); color: var(--navy); border: 2px solid var(--yellow); }
+    .spinner { display: none; width: 22px; height: 22px; border: 3px solid #ddd; border-top-color: var(--navy); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 14px auto 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #result { display: none; }
+    .verdict { border-radius: 10px; padding: 22px; text-align: center; margin-bottom: 16px; }
+    .verdict.fraud { background: var(--red-bg); border: 2px solid var(--red); }
+    .verdict.ham   { background: var(--grn-bg); border: 2px solid var(--green); }
+    .verdict h3 { font-size: 1.2rem; font-weight: 800; }
+    .verdict.fraud h3 { color: var(--red); }
+    .verdict.ham   h3 { color: var(--green); }
+    .verdict .conf { font-size: 0.88rem; color: var(--sub); margin-top: 6px; }
+    .original-msg { background: var(--gray); border-radius: 8px; padding: 14px; font-size: 13px; line-height: 1.6; word-break: break-word; }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat { flex: 1; min-width: 120px; background: var(--white); border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
+    .stat .val { font-size: 1.4rem; font-weight: 800; color: var(--navy); }
+    .stat .lbl { font-size: 11px; color: var(--sub); margin-top: 2px; }
+    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media(max-width: 560px) { .examples { grid-template-columns: 1fr; } }
+    .ex-item { border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--sub); cursor: pointer; transition: border-color 0.2s; line-height: 1.5; }
+    .ex-item:hover { border-color: var(--yellow); background: #fffde7; }
+    .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; }
+    .tag.fraud { background: var(--red-bg);  color: var(--red); }
+    .tag.ham   { background: var(--grn-bg);  color: var(--green); }
+    footer { text-align: center; padding: 20px; font-size: 11px; color: #aaa; }
+    #toast { display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 1000; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🛡️ MoMo Fraud SMS Detector</h1>
+    <p>NLP-powered detection of fake Ghanaian mobile money SMS messages</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="stats">
+    <div class="stat"><div class="val">96.67%</div><div class="lbl">Accuracy</div></div>
+    <div class="stat"><div class="val">97.56%</div><div class="lbl">Precision</div></div>
+    <div class="stat"><div class="val">95.00%</div><div class="lbl">Recall</div></div>
+    <div class="stat"><div class="val">96.27%</div><div class="lbl">F1-Score</div></div>
+    <div class="stat"><div class="val" style="font-size:0.9rem">{{ best_model }}</div><div class="lbl">Best Classifier</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Analyse an SMS Message</h2>
+    <textarea id="smsInput" placeholder="Paste or type an SMS message here…"></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnAnalyse" onclick="analyse()">Analyse Message</button>
+      <button class="btn-outline" onclick="clearAll()">Clear</button>
+    </div>
+    <div class="spinner" id="spinner"></div>
+  </div>
+
+  <div class="card" id="result">
+    <h2>Classification Result</h2>
+    <div class="verdict" id="verdictBox">
+      <h3 id="verdictText"></h3>
+      <p class="conf" id="verdictConf"></p>
+    </div>
+    <p style="font-size:12px;color:#999;margin-bottom:8px;">Original message:</p>
+    <div class="original-msg" id="originalMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Try Example Messages</h2>
+    <div class="examples">
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag fraud">Fraud</span><br>
+        URGENT: Your MTN MoMo account will be suspended in 24hrs. Click bit.ly/mtn-verify to prevent deactivation.
+      </div>
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag ham">Legitimate</span><br>
+        You have received GHS 500.00 from 0244567890. Your new MoMo balance is GHS 1,250.00. TxnID: 873621904.
+      </div>
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag fraud">Fraud</span><br>
+        Congratulations! You have won GHS 5,000 from the Telecel monthly draw. Call 0549123456 to claim your prize now.
+      </div>
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag ham">Legitimate</span><br>
+        MTN MoMo: Transaction confirmed. GHS 200.00 paid to Shoprite Ghana. Balance: GHS 950.00. Thank you.
+      </div>
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag fraud">Fraud</span><br>
+        ALERT: GHS 2,000 debited without your authority. Call 0556789012 immediately to reverse this transaction.
+      </div>
+      <div class="ex-item" onclick="loadExample(this)">
+        <span class="tag ham">Legitimate</span><br>
+        Your MoMo account has been credited with GHS 1,000.00. Transaction ID: 992817362. Thank you for using MTN.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>About This System</h2>
+    <p style="font-size:13px;color:var(--sub);line-height:1.7;">
+      This system uses <strong>Natural Language Processing (NLP)</strong> and machine learning to detect
+      fraudulent mobile money SMS messages targeting Ghanaian users. The pipeline implements
+      <strong>TF-IDF vectorisation</strong> (5,000 features, unigrams + bigrams), text preprocessing
+      (lowercase, punctuation removal, stop-word removal, lemmatisation), and a
+      <strong>Logistic Regression</strong> classifier achieving <strong>96.67% accuracy</strong>
+      on 1,200 Ghanaian MoMo SMS messages. Built with Python, NLTK, Scikit-learn and Flask.
+    </p>
+  </div>
+
+</main>
+
+<footer>MoMo Fraud SMS Detector &mdash; ATU BTech Project &mdash; NLP &amp; Machine Learning</footer>
+<div id="toast"></div>
+
+<script>
+  async function analyse() {
+    const input   = document.getElementById('smsInput');
+    const message = input.value.trim();
+    if (!message) { showToast('Please enter an SMS message'); return; }
+    setLoading(true);
+    document.getElementById('result').style.display = 'none';
+    try {
+      const res  = await fetch('/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Server error'); return; }
+      showResult(data);
+    } catch (err) {
+      showToast('Cannot reach server. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showResult(data) {
+    const box   = document.getElementById('verdictBox');
+    const text  = document.getElementById('verdictText');
+    const conf  = document.getElementById('verdictConf');
+    const orig  = document.getElementById('originalMsg');
+    const panel = document.getElementById('result');
+    box.className        = 'verdict ' + (data.is_fraud ? 'fraud' : 'ham');
+    text.textContent     = data.is_fraud ? '⚠️ FRAUDULENT MESSAGE' : '✅ LEGITIMATE MESSAGE';
+    conf.textContent     = data.confidence ? `Confidence: ${data.confidence}%` : '';
+    orig.textContent     = data.message;
+    panel.style.display  = 'block';
+    panel.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function loadExample(el) {
+    const tag = el.querySelector('.tag').textContent;
+    document.getElementById('smsInput').value = el.innerText.replace(tag, '').trim();
+  }
+
+  function clearAll() {
+    document.getElementById('smsInput').value = '';
+    document.getElementById('result').style.display = 'none';
+  }
+
+  function setLoading(on) {
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+    document.getElementById('btnAnalyse').disabled   = on;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3500);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('smsInput').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyse();
+    });
+  });
+</script>
+
+</body>
+</html>
